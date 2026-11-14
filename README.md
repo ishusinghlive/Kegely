@@ -51,6 +51,7 @@ Pelvic floor training is simple in theory and surprisingly hard to keep up in pr
 | 📈 | **Progress tracking** | Completed sessions, daily streak, weekly activity, time trained, a 7-day chart and a 5-week activity grid |
 | ⏰ | **Daily reminders** | Add multiple reminder times and manage each one individually |
 | 📖 | **Practical guide** | Find the right muscles, avoid common mistakes and build up gradually |
+| 💾 | **Backup & restore** | Export your progress to a JSON file and import it after clearing browser data or on another device |
 | 📱 | **Installable PWA** | Add it to your home screen for an app-like, offline-friendly experience |
 | 🎨 | **12 themes** | Auto (follows your device), Light, Dark, plus Midnight, Ocean, Forest, Sunset, Lavender, Sand, Sky, Mint and Rose, chosen on the Guide screen |
 
@@ -137,7 +138,7 @@ No. Open the link and start training. Nothing to sign up for.
 <details>
 <summary><b>Where is my progress stored?</b></summary>
 
-Locally in your browser on your device. Because of that, clearing your browser data will also clear your history, and progress does not sync between devices.
+Locally in your browser on your device. Because of that, clearing your browser data will also clear your history, and progress does not sync between devices. Use **Progress → Export backup** to save a file and **Import backup** to restore it.
 </details>
 
 <details>

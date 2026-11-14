@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kegely Men">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -214,13 +214,16 @@ nav{
   position:fixed;left:50%;bottom:0;transform:translateX(-50%);
   width:min(440px,calc(100% - 24px));margin-bottom:max(12px,env(safe-area-inset-bottom,0px));
   display:grid;grid-template-columns:repeat(4,1fr);border-radius:30px;padding:6px;
-  transition:transform .3s,opacity .3s;z-index:5
+  transition:transform .3s,opacity .3s,visibility .3s;z-index:5
 }
 nav button{border:0;background:none;border-radius:18px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.75rem;color:var(--muted)}
 nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,transparent);color:var(--ink);box-shadow:var(--hl);font-weight:600}
 .focus header,.focus .chips,.focus .custom,.focus .plan,.focus .opts{display:none}
-.focus nav,body.remind nav{transform:translate(-50%,160%);opacity:0;pointer-events:none}
+.focus nav,body.remind nav{transform:translate(-50%,160%);opacity:0;pointer-events:none;visibility:hidden}
+body.focus.paused nav{transform:translate(-50%,0);opacity:1;pointer-events:auto;visibility:visible}
+body.focus.paused main{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+.heat i.f{opacity:.3}
 .focus #v-timer{min-height:calc(100vh - 140px);justify-content:center}
 .focus .stage{margin-top:6px;width:max(220px,min(440px,92vw,calc(100vh - 210px)));height:max(220px,min(440px,92vw,calc(100vh - 210px)))}
 .focus #count{font-size:clamp(3.2rem,min(24vw,14vh),7rem)}
@@ -465,7 +468,8 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   var KEY='kegel-clone-v1',GOAL=3;
   var $=function(id){return document.getElementById(id)};
   var store={sessions:[],level:'Beginner',custom:{s:4,r:6,n:10,q:5,b:10},snd:true,voc:false,hap:true,rem:[],fired:{},vp:'nora',theme:'auto',open:{}};
-  try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&typeof d==='object')for(var k in d)store[k]=d[k];}}catch(e){}
+  try{var raw=localStorage.getItem(KEY);if(raw){var d=JSON.parse(raw);if(d&&typeof d==='object')for(var k in d)if(k!=='__proto__')store[k]=d[k];}}catch(e){}
+  if(!Array.isArray(store.sessions))store.sessions=[];store.sessions=store.sessions.filter(function(x){return x&&typeof x==='object';});if(!Array.isArray(store.rem))store.rem=[];store.rem=store.rem.filter(function(x){return x&&typeof x.t==='string'&&/^\d{2}:\d{2}$/.test(x.t);});['fired','open'].forEach(function(k){if(!store[k]||typeof store[k]!=='object')store[k]={};});if(!store.custom||typeof store.custom!=='object')store.custom={s:4,r:6,n:10,q:5,b:10};
   function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
 
   var level=LEVELS.hasOwnProperty(store.level)?store.level:'Beginner';
@@ -490,7 +494,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
     Array.prototype.forEach.call($('nav').children,function(b){if(b.dataset.v===navV)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   }
   Array.prototype.forEach.call($('nav').children,function(b){b.onclick=function(){location.hash=b.dataset.v;show(b.dataset.v);};});
-  window.addEventListener('hashchange',function(){show(location.hash.slice(1));});
+  window.addEventListener('hashchange',function(){var v=location.hash.slice(1),b=document.body.classList;if(b.contains('focus')&&!b.contains('paused')&&v&&v!=='timer'){location.replace('#timer');return;}show(v);});
 
   /* level chips */
   var tabs=$('tabs');
@@ -530,12 +534,12 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
       arr.push({sum:sum,l:dd.toLocaleDateString(undefined,{weekday:'narrow'})});
       if(sum>mx)mx=sum;
     }
-    $('sWeek').textContent=wc;
+    
     st.streak=streak;$('sStreak').textContent=streak+' d';
     $('sTotal').textContent=total>=3600?(total/3600).toFixed(1)+' h':total>=60?Math.round(total/60)+' min':total+' s';
     arr.forEach(function(a){var col=document.createElement('div');col.innerHTML='<i style="height:'+Math.max(4,a.sum/mx*56)+'px'+(a.sum?'':';opacity:.25')+'"></i><span>'+a.l+'</span>';col.title=a.sum+' s';wk.appendChild(col);});
     var h=$('heat');h.innerHTML='';
-    for(var j=34;j>=0;j--){var e=new Date();e.setDate(e.getDate()-j);var ek=today(e),c=document.createElement('i');if(per[ek])c.className='on';if(j===0)c.className+=' t';c.title=ek;h.appendChild(c);}
+    var dow=(new Date().getDay()+6)%7,wk2=0;for(var j=0;j<35;j++){var e=new Date();e.setDate(e.getDate()-dow-28+j);var ek=today(e),c=document.createElement('i');if(j>dow+28)c.className='f';else{if(per[ek])c.className='on';if(ek===tKey)c.className+=' t';c.title=ek;if(j>=28)wk2+=cntMap[ek]||0;}h.appendChild(c);}$('sWeek').textContent=wk2;
     var cnt=cntMap[tKey]||0,G=3;st.cnt=cnt;st.G=G;
     $('today').innerHTML='<span>Today</span>';
     for(var z=0;z<G;z++){var ii=document.createElement('i');ii.className=z<cnt?'on':'';$('today').appendChild(ii);}
@@ -611,7 +615,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   function orbTo(scale,secs){orb.style.transitionDuration=secs+'s';orb.style.transform='scale('+scale+')';}
   function color(v){stage.style.setProperty('--c',v);}
   function focus(on){
-    var r1=stage.getBoundingClientRect();document.body.classList.toggle('focus',on);var r2=stage.getBoundingClientRect();
+    var r1=stage.getBoundingClientRect();document.body.classList.toggle('focus',on);document.body.classList.remove('paused');var r2=stage.getBoundingClientRect();
     if(!r1.width||!r2.width||(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))return;
     var s=r1.width/r2.width,dx=r1.left+r1.width/2-r2.left-r2.width/2,dy=r1.top+r1.height/2-r2.top-r2.height/2;
     if(Math.abs(s-1)<.01&&Math.abs(dx)<1&&Math.abs(dy)<1)return;
@@ -683,11 +687,11 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
     beep(880,.35);say('Well done. Session complete.');buzz([80,60,80]);
     toggleLock(false);focus(false);
   }
-  var wl=null;
-  function toggleLock(on){
+  var wl=null,wlOn=false;
+  function toggleLock(on){wlOn=on;
     $('cs').disabled=$('cr').disabled=$('cn').disabled=$('cq').disabled=$('cb').disabled=on;
     try{
-      if(on&&navigator.wakeLock&&!wl){navigator.wakeLock.request('screen').then(function(l){wl=l;l.addEventListener('release',function(){wl=null;});}).catch(function(){});}
+      if(on&&navigator.wakeLock&&!wl){navigator.wakeLock.request('screen').then(function(l){if(!wlOn){try{l.release();}catch(e){}return;}wl=l;l.addEventListener('release',function(){wl=null;});}).catch(function(){});}
       else if(!on&&wl){wl.release();wl=null;}
     }catch(e){}
   }
@@ -699,7 +703,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
       }
     }catch(e){}
   }
-  function start(){
+  function start(){if(!store.ok){gate.style.display='block';try{gate.scrollIntoView({block:'nearest'});}catch(e){}return;}
     primeSpeech();
     var now=performance.now();
     if(st.phase==='ready'||st.phase==='done'){st.rep=1;enterPrep(now);}
@@ -714,7 +718,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   function pause(){
     clearInterval(st.timer);st.running=false;
     st.left=Math.max(0,(st.endAt-performance.now())/1000);
-    $('go').textContent='Resume';toggleLock(false);
+    $('go').textContent='Resume';toggleLock(false);document.body.classList.add('paused');
     var m=getComputedStyle(orb).transform;orb.style.transitionDuration='0s';orb.style.transform=m;
   }
   function doReset(){
@@ -763,7 +767,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
       else if(!e.shiftKey&&document.activeElement===cf){e.preventDefault();cc.focus();}
     }
   });
-  $('export').onclick=function(){
+  $('export').onclick=function(){var fn='kegely-backup-'+today()+'.json';if(isIOS&&navigator.canShare&&window.File){try{var fl=new File([JSON.stringify(store,null,2)],fn,{type:'application/json'});if(navigator.canShare({files:[fl]})){navigator.share({files:[fl],title:'Kegely backup'}).catch(function(){});return;}}catch(e){}}
     var a=document.createElement('a');
     a.href=URL.createObjectURL(new Blob([JSON.stringify(store,null,2)],{type:'application/json'}));
     a.download='kegely-backup-'+today()+'.json';
@@ -778,7 +782,8 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
       try{
         var d=JSON.parse(r.result);
         if(!d||typeof d!=='object'||!Array.isArray(d.sessions))throw new Error('Invalid');
-        store.sessions=d.sessions.filter(function(x){return x&&typeof x.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date);}).map(function(x){return {date:x.date,secs:Math.max(0,Number(x.secs)||0),level:typeof x.level==='string'?x.level:'Beginner'};}).slice(-2000);
+        var ns=d.sessions.filter(function(x){return x&&typeof x.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(x.date);}).map(function(x){return {date:x.date,secs:Math.max(0,Number(x.secs)||0),level:typeof x.level==='string'?x.level:'Beginner'};}).slice(-2000);
+        if(store.sessions.length&&!confirm('Replace your '+store.sessions.length+' saved sessions with the '+ns.length+' in this backup?')){e.target.value='';return;}store.sessions=ns;
         if(typeof d.level==='string'&&LEVELS.hasOwnProperty(d.level))store.level=d.level;
         var defC={s:4,r:6,n:10,q:5,b:10};
         if(d.custom&&typeof d.custom==='object'){for(var ck in defC)if(d.custom[ck]!==undefined)defC[ck]=d.custom[ck];}
@@ -972,6 +977,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
     return poseBuf;
   }
 
+  function hudTxt(m,d){var i=m.q<.38?0:m.q<.58?1:m.q<.94?2:3;var L=m.m==='s'?['INHALE · LOWER','HOLD · STAY STEADY','EXHALE · RISE & LIFT','BREATHE · PREPARE']:m.m==='r'?['INHALE · SOFTEN','HOLD · LET GO','EXHALE · RETURN','BREATHE · SETTLE']:d;return L[i];}
   function setFig3D(s,p,w,meta){
     var hx=p[0],hy=p[1],nx=p[2],ny=p[3],tx=p[4],ty=p[5],px=p[6],py=p[7],
         fsx=p[8],fsy=p[9],fex=p[10],fey=p[11],fwx=p[12],fwy=p[13],
@@ -1029,7 +1035,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
       out+='<ellipse cx="'+nwx.toFixed(1)+'" cy="'+nwy.toFixed(1)+'" rx="2.9" ry="2.3" fill="url(#h3d-skin)"/>';
       if(meta){
         var phF=meta.q<0.38?'INHALE · LENGTHEN SPINE':meta.q<0.58?'EXHALE · SOFTEN KNEES':meta.q<0.94?'RELEASE PELVIC FLOOR':'BREATHE · SIT TALL';
-        var pctF=Math.round(35+meta.k*65);
+        var pctF=Math.round(pf*100);
         out+='<g transform="translate(8,7)"><rect x="0" y="0" width="114" height="15" rx="7.5" fill="rgba(14,18,28,0.62)" stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/><circle cx="7.5" cy="7.5" r="2.8" fill="#4ff5c6"/><text x="14" y="10.2" fill="#f0f4ff" font-size="6.2" font-weight="700" letter-spacing="0.06em">'+phF+'</text></g>'+
              '<g transform="translate(144,7)"><rect x="0" y="0" width="48" height="15" rx="7.5" fill="rgba(14,18,28,0.62)" stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/><text x="24" y="10.2" text-anchor="middle" fill="#7affdb" font-size="6.2" font-weight="700">'+(exPaused?'PAUSED':exSpeed<1?'0.5× 3D':'PF '+pctF+'%')+'</text></g>';
       }
@@ -1105,9 +1111,9 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
 
     /* 9. Live Biomechanical Phase HUD & Interactive Control Badge */
     if(meta){
-      var ph=meta.q<0.38?'EXHALE · ENGAGE & LIFT':meta.q<0.58?'HOLD · PELVIC FLOOR ON':meta.q<0.94?'INHALE · SLOW RELEASE':'BREATHE · PREPARE';
+      var ph=hudTxt(meta,['EXHALE · ENGAGE & LIFT','HOLD · PELVIC FLOOR ON','INHALE · SLOW RELEASE','BREATHE · PREPARE']);
       var dotCol=meta.k>0.55?'#4ff5c6':'#aab8e0';
-      var pct=Math.round(35+meta.k*65);
+      var pct=Math.round(pf*100);
       out+='<g transform="translate(8,7)">'+
            '<rect x="0" y="0" width="114" height="15" rx="7.5" fill="rgba(14,18,28,0.62)" stroke="rgba(255,255,255,0.16)" stroke-width="0.6"/>'+
            '<circle cx="7.5" cy="7.5" r="2.8" fill="'+dotCol+'"/>'+
@@ -1133,8 +1139,9 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
    ['Diaphragmatic breathing','10 slow breaths','Lie on your back with knees bent and one hand on your belly. Breathe in through your nose so your belly rises and your pelvic floor softens. Breathe out slowly and let it fall.',[[46,81,56,84,71,85,86,86,58,83,61,87,67,78,57,86,67,90,78,79,87,84,101,70,113,88,122,89,86,86,101,72,114,90,123,91,-80,0.1,0.4],[46,81,56,84,71,84,86,86,58,83,61,87,67,77,57,86,67,88,78,74,87,84,101,70,113,88,122,89,86,86,101,72,114,90,123,91,-80,2.8,0.95]]],
    ['Wall sit','3 × 20–30 seconds','Lean your back on a wall and slide down until your knees are about 90 degrees. Keep your weight in your heels, breathe steadily and gently lift your pelvic floor. Slide back up.',[[71,21,70,30,70,44,70,58,71,32,73,45,83,54,69,32,71,46,82,56,71,57,89,69,90,88,99,89,70,58,88,70,89,90,98,91,0,0.3,0.45],[71,33,70,42,70,56,70,70,71,44,73,57,84,65,69,44,71,58,83,66,71,69,91,69,91,88,100,89,70,70,90,70,90,90,99,91,0,0.3,0.95]],1]
   ];
-  var io=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(x){x.target._e.vis=x.isIntersecting;});},{rootMargin:'80px'}):null;
-  function toggleExSpeed(){if(!exPaused&&exSpeed===1){exSpeed=0.5;}else if(!exPaused){exPaused=true;}else{exPaused=false;exSpeed=1;}exDirty=true;}
+  var MODE={0:'s',3:'r',6:'r',7:'r',8:'r'};EX.forEach(function(e,i){e[5]=MODE[i]||'';});
+  var io=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(x){x.target._e.vis=x.isIntersecting;exDirty=true;});},{rootMargin:'80px'}):null;
+  function toggleExSpeed(){if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches){exPaused=false;exSpeed=.5;animate(true,1);return;}if(!exPaused&&exSpeed===1){exSpeed=0.5;}else if(!exPaused){exPaused=true;}else{exPaused=false;exSpeed=1;}exDirty=true;}
   EX.forEach(function(e,i){
     var d=document.createElement('div');d.className='panel ex';
     d.innerHTML='<svg class="fg" tabindex="0" role="button" aria-label="'+e[0]+' demonstration — tap or press Enter to toggle speed or pause" style="cursor:pointer" title="Tap to toggle 1x / 0.5x slow-motion / pause"></svg><h2>'+(i+1)+'. '+e[0]+'</h2><p class="meta">'+e[1]+'</p><p class="note" style="margin:0">'+e[2]+'</p>';
@@ -1150,7 +1157,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   function ez(x){return x<0.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2;}
   function loop(t){
     if(!lastT)lastT=t;
-    if(!exDirty&&t-lastT<32){raf=requestAnimationFrame(loop);return;}
+    if(!exDirty&&t-lastT<42){raf=requestAnimationFrame(loop);return;}
     var dt=Math.min(64,t-lastT);lastT=t;
     if(!exPaused||exDirty){
       if(!exPaused)animT+=dt*exSpeed;
@@ -1160,12 +1167,12 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
         var e=EX[i];
         if(!e.vis)continue;
         var p=interpPose(e[3][0],e[3][1],k,animT);
-        setFig3D(e.svg,p,e[4],{q:q,k:k});
+        if(e[5]==='r')p[38]=.8-.5*k;else if(e[5]==='s')p[38]=.95-.55*k;setFig3D(e.svg,p,e[4],{q:q,k:k,m:e[5]});
       }
     }
     raf=requestAnimationFrame(loop);
   }
-  function animate(on){cancelAnimationFrame(raf);lastT=0;exDirty=true;if(on&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))raf=requestAnimationFrame(loop);}
+  function animate(on,f){cancelAnimationFrame(raf);lastT=0;exDirty=true;if(on&&(f||!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)))raf=requestAnimationFrame(loop);}
   var dp=null,inst=$('inst');
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;inst.style.display='block';$('insttxt').textContent='Add Kegely to your home screen for quick, full-screen access.';$('instbtn').style.display='block';});
   $('instbtn').onclick=function(){if(dp){dp.prompt();dp=null;inst.style.display='none';}};
@@ -1223,7 +1230,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   function partOf(t){var h=+t.split(':')[0];return h<5?'Night':h<12?'Morning':h<17?'Afternoon':h<21?'Evening':'Night';}
   function arm(r){var n=new Date(),q=r.t.split(':');if((+q[0])*60+(+q[1])<=n.getHours()*60+n.getMinutes())store.fired[r.id]=today();else delete store.fired[r.id];}
   function remNotify(r){
-    var o={body:'Time for your Kegel session. Tap to start.',icon:'icon-192.png',badge:'icon-192.png',tag:'kegely-'+r.id,data:{url:'./#timer'}};
+    var o={body:'Time for your Kegel session. Tap to start.',icon:'icon-192.png',badge:'icon-badge.png',tag:'kegely-'+r.id,data:{url:'./#timer'}};
     function viaPage(){try{new Notification('Kegely',o);}catch(e){}}
     try{
       if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){
@@ -1235,7 +1242,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
     }catch(e){viaPage();}
   }
   function remTick(){
-    if(!window.Notification||Notification.permission!=='granted')return;
+    if(!window.Notification||Notification.permission!=='granted'||st.running)return;
     var n=new Date(),d=today(),m=n.getHours()*60+n.getMinutes();
     store.rem.forEach(function(r){
       if(!r.on||store.fired[r.id]===d)return;
@@ -1277,7 +1284,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   $('rback').onclick=function(){location.hash='timer';show('timer');};
   $('rcal').onclick=function(){
     var z=new Date(),ds=z.getFullYear()+p2(z.getMonth()+1)+p2(z.getDate()),ts=z.toISOString().replace(/[-:]/g,'').slice(0,15)+'Z';
-    var tz='';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';}catch(e){}
+    var tz='';try{tz='';}catch(e){}
     var L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Kegely//Reminders//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Kegely'];
     if(tz)L.push('X-WR-TIMEZONE:'+tz);
     store.rem.filter(function(r){return r.on;}).forEach(function(r){
@@ -1305,7 +1312,7 @@ nav button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 13%,tran
   var gate=$('gate');if(!store.ok)gate.style.display='block';
   $('gok').onclick=function(){store.ok=true;save();gate.style.display='none';};
   stage.onclick=function(){$('go').click();};stage.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();$('go').click();}};stage.style.cursor='pointer';
-  document.addEventListener('visibilitychange',function(){if(document.hidden){if(wl){try{wl.release();}catch(e){}wl=null;}}else if(st.running){tick();if(!wl)toggleLock(true);}});
+  document.addEventListener('visibilitychange',function(){if(document.hidden&&st.running){pause();$('next').textContent='Paused because the app went to the background. Tap Resume to continue.';}});
 })();
 </script>
 <script>
